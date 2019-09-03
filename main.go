@@ -18,11 +18,11 @@ func substr(input string, start int, length int) string {
 		return ""
 	}
 
-	if start+length > len(asRunes) {
+	if start + length > len(asRunes) {
 		length = len(asRunes) - start
 	}
 
-	return string(asRunes[start : start+length])
+	return string(asRunes[start : start + length])
 }
 
 func getAccountID(steamID string) (int, error) {
@@ -30,7 +30,9 @@ func getAccountID(steamID string) (int, error) {
 	if err != nil {
 		return 0, errors.New("failed to convert steamID from a string into an integer")
 	}
-	return id - 765611979602657280, nil
+
+	// Converts base64 int to base32
+	return id - 76561197960265728, nil
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +55,9 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		matches, err := http.Get(fmt.Sprintf("https://api.opendota.com/api/players/%d/recentMatches", accountID))
+		fmt.Printf("Account ID: %d", accountID)
+		// There is no way to query the match with the exact startTime, hence we save the queries immediately.
+		matches, err := http.Get(fmt.Sprintf("https://api.opendota.com/api/players/%d/matches?date=7", accountID))
 		if err != nil {
 			log.Printf("main.go: attempt to get recent matches for player with account ID %d failed. \n %s", accountID, err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -78,6 +82,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	fmt.Println("Running...")
 	http.HandleFunc("/login", loginHandler)
 	http.ListenAndServe(":8080", nil)
 }
