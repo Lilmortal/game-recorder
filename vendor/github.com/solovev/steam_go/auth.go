@@ -3,7 +3,6 @@ package steam_go
 import (
 	"errors"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -30,7 +29,6 @@ type OpenId struct {
 func NewOpenId(r *http.Request) *OpenId {
 	id := new(OpenId)
 
-	log.Println(id)
 	proto := "http://"
 	if r.TLS != nil {
 		proto = "https://"
@@ -50,7 +48,6 @@ func NewOpenId(r *http.Request) *OpenId {
 		id.data = r.URL.Query()
 	}
 
-	// log.Println(id.data)
 	return id
 }
 
@@ -64,7 +61,6 @@ func (id OpenId) AuthUrl() string {
 		"openid.return_to":  id.returnUrl,
 	}
 
-	log.Println("WEEEEEE")
 	i := 0
 	url := steam_login + "?"
 	for key, value := range data {
@@ -74,7 +70,6 @@ func (id OpenId) AuthUrl() string {
 		}
 		i++
 	}
-	log.Println("Steam url", url)
 	return url
 }
 
@@ -83,7 +78,6 @@ func (id *OpenId) ValidateAndGetId() (string, error) {
 		return "", errors.New("Mode must equal to \"id_res\".")
 	}
 
-	log.Println("DAta:", id.data)
 	if id.data.Get("openid.return_to") != id.returnUrl {
 		return "", errors.New("The \"return_to url\" must match the url of current request.")
 	}
