@@ -7,7 +7,8 @@ import (
 	"net/http"
 )
 
-func matchesHandler(w http.ResponseWriter, r *http.Request) {
+// MatchesHandler returns all the recent matches by a specific user.
+func MatchesHandler(w http.ResponseWriter, r *http.Request) {
 	// get accountID from request
 	accountID := 2
 

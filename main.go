@@ -16,9 +16,9 @@ func main() {
 }
 
 func run() error {
-	http.HandleFunc("/login", loginHandler)
-	http.HandleFunc("/healthCheck", healthCheckHandler)
-	http.HandleFunc("/matches", matchesHandler)
+	http.Handle("/login", Adapt(LoginHandler, EnableCors))
+	http.Handle("/healthCheck", Adapt(HealthCheckHandler, EnableCors))
+	http.Handle("/matches", Adapt(MatchesHandler, EnableCors))
 	http.ListenAndServe(":8080", nil)
 
 	return nil
@@ -26,3 +26,4 @@ func run() error {
 
 // TODO:
 // Add a middleware for logging
+// error handling

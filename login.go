@@ -20,9 +20,10 @@ func getAccountID(steamID string) (int, error) {
 	return id - 76561197960265728, nil
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+// LoginHandler handles users attempting to login via Steam.
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// r.Host = "localhost:3000"
+	// This is needed to fix 
 	r.RequestURI = "/login"
 
 	opID := steam_go.NewOpenId(r)
