@@ -20,16 +20,34 @@ func getAccountID(steamID string) (int, error) {
 	return id - 76561197960265728, nil
 }
 
+func createCookie(name string, value string, isHTTPOnly bool) (*http.Cookie, error) {
+	// cookieValue := accountIDCookie{
+	// 	accountID: accountID,
+	// }
+
+	cookie := http.Cookie{
+		Name:  name,
+		Value: value,
+		// Expires in 1 week
+		MaxAge:   604800,
+		Path:     "/",
+		Secure:   false, // TODO: true in test/prod env
+		HttpOnly: isHTTPOnly,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	return &cookie, nil
+}
+
 // LoginHandler handles users attempting to login via Steam.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	// r.Host = "localhost:3000"
-	// This is needed to fix 
-	r.RequestURI = "/login"
+	fmt.Println(r.Referer())
+	r.Host = "localhost:8080"
+	r.RequestURI = `/login`
 
 	opID := steam_go.NewOpenId(r)
 	switch opID.Mode() {
 	case "":
-		log.Println("test")
 		http.Redirect(w, r, opID.AuthUrl(), 301)
 	case "cancel":
 		w.Write([]byte("Authentication cancelled"))
@@ -47,7 +65,14 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		fmt.Printf("Account ID: %d", accountID)
-		fmt.Fprintln(w, accountID)
+		cookie, err := createCookie("gameRecorderAccountId", strconv.Itoa(accountID), true)
+		if err != nil {
+			log.Fatalf("main.go: failed to create cookie. %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+		http.SetCookie(w, cookie)
+
+		http.Redirect(w, r, "http://localhost:3000", 301)
 	}
 }
