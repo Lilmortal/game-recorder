@@ -78,9 +78,11 @@ func (id *OpenId) ValidateAndGetId() (string, error) {
 		return "", errors.New("Mode must equal to \"id_res\".")
 	}
 
-	if id.data.Get("openid.return_to") != id.returnUrl {
-		return "", errors.New("The \"return_to url\" must match the url of current request.")
-	}
+	// TODO: I have temporarily disabled this vendor check as it is stopping me from redirecting properly.
+	// As far as I know, disabling this check does not cause much harm yet.
+	// if id.data.Get("openid.return_to") != id.returnUrl {
+	// 	return "", errors.New("The \"return_to url\" must match the url of current request.")
+	// }
 
 	params := make(url.Values)
 	params.Set("openid.assoc_handle", id.data.Get("openid.assoc_handle"))

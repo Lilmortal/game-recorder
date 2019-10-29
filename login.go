@@ -10,26 +10,26 @@ import (
 	"github.com/solovev/steam_go"
 )
 
+var secondsInWeek = 604800
+
+func convertBase64ToBase32(number int) int {
+	return number - 76561197960265728
+}
+
 func getAccountID(steamID string) (int, error) {
 	id, err := strconv.Atoi(steamID)
 	if err != nil {
 		return 0, errors.New("failed to convert steamID from a string into an integer")
 	}
 
-	// Converts base64 int to base32
-	return id - 76561197960265728, nil
+	return convertBase64ToBase32(id), nil
 }
 
-func createCookie(name string, value string, isHTTPOnly bool) (*http.Cookie, error) {
-	// cookieValue := accountIDCookie{
-	// 	accountID: accountID,
-	// }
-
+func createCookie(name string, value string, maxAge int, isHTTPOnly bool) (*http.Cookie, error) {
 	cookie := http.Cookie{
-		Name:  name,
-		Value: value,
-		// Expires in 1 week
-		MaxAge:   604800,
+		Name:     name,
+		Value:    value,
+		MaxAge:   maxAge,
 		Path:     "/",
 		Secure:   false, // TODO: true in test/prod env
 		HttpOnly: isHTTPOnly,
@@ -41,14 +41,19 @@ func createCookie(name string, value string, isHTTPOnly bool) (*http.Cookie, err
 
 // LoginHandler handles users attempting to login via Steam.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.Referer())
+	returnURL := ""
+	if len(r.URL.Query()["referer"]) > 0 {
+		returnURL = r.URL.Query()["referer"][0]
+	}
+
 	r.Host = "localhost:8080"
-	r.RequestURI = `/login`
+	r.RequestURI = `/login?referer=` + r.Referer()
 
 	opID := steam_go.NewOpenId(r)
+
 	switch opID.Mode() {
 	case "":
-		http.Redirect(w, r, opID.AuthUrl(), 301)
+		http.Redirect(w, r, opID.AuthUrl(), http.StatusMovedPermanently)
 	case "cancel":
 		w.Write([]byte("Authentication cancelled"))
 	default:
@@ -65,7 +70,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		cookie, err := createCookie("gameRecorderAccountId", strconv.Itoa(accountID), true)
+		cookie, err := createCookie("gameRecorderAccountId", strconv.Itoa(accountID), secondsInWeek, true)
 		if err != nil {
 			log.Fatalf("main.go: failed to create cookie. %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -73,6 +78,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 		http.SetCookie(w, cookie)
 
-		http.Redirect(w, r, "http://localhost:3000", 301)
+		http.Redirect(w, r, returnURL, http.StatusMovedPermanently)
 	}
 }
