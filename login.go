@@ -10,7 +10,14 @@ import (
 	"github.com/solovev/steam_go"
 )
 
-var secondsInWeek = 604800
+const (
+	secondsInHour = 3600
+	secondsInWeek = 604800
+	isSecure      = true
+	isNotSecure   = false
+	isHTTPOnly    = true
+	isNotHTTPOnly = false
+)
 
 func convertBase64ToBase32(number int) int {
 	return number - 76561197960265728
@@ -25,18 +32,22 @@ func getAccountID(steamID string) (int, error) {
 	return convertBase64ToBase32(id), nil
 }
 
-func createCookie(name string, value string, maxAge int, isHTTPOnly bool) (*http.Cookie, error) {
+func createCookie(name string, value string, maxAge int, secure bool, isHTTPOnly bool, isStrict http.SameSite) (*http.Cookie, error) {
 	cookie := http.Cookie{
 		Name:     name,
 		Value:    value,
 		MaxAge:   maxAge,
 		Path:     "/",
-		Secure:   false, // TODO: true in test/prod env
+		Secure:   secure,
 		HttpOnly: isHTTPOnly,
 		SameSite: http.SameSiteStrictMode,
 	}
 
 	return &cookie, nil
+}
+
+func generateAntiCSRFTokenCookie() (*http.Cookie, error) {
+	return createCookie("anti-csrf-token", "token", secondsInHour, isNotSecure, isNotHTTPOnly, http.SameSiteStrictMode)
 }
 
 // LoginHandler handles users attempting to login via Steam.
@@ -70,13 +81,20 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		cookie, err := createCookie("gameRecorderAccountId", strconv.Itoa(accountID), secondsInWeek, true)
+		cookie, err := createCookie("gameRecorderAccountId", strconv.Itoa(accountID), secondsInWeek, isNotSecure, isHTTPOnly, http.SameSiteStrictMode)
 		if err != nil {
 			log.Fatalf("main.go: failed to create cookie. %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
+		antiCSRFTokenCookie, err := generateAntiCSRFTokenCookie()
+		if err != nil {
+			log.Fatalf("main.go: failed to create anti CSRF cookie. %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
 		http.SetCookie(w, cookie)
+		http.SetCookie(w, antiCSRFTokenCookie)
 
 		http.Redirect(w, r, returnURL, http.StatusMovedPermanently)
 	}
