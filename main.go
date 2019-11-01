@@ -27,3 +27,4 @@ func run() error {
 // TODO:
 // Add a middleware for logging
 // error handling
+// Verifying all cookies by checking if CSRF token in HTTP header is same as cookie

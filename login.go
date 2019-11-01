@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -46,12 +48,32 @@ func createCookie(name string, value string, maxAge int, secure bool, isHTTPOnly
 	return &cookie, nil
 }
 
+func generateJwtToken(cookieName string, value string) (*http.Cookie, error) {
+	header := Header{alg: HS256}
+	payload := Payload{}
+
+	jwt := Jwt{header: header, payload: payload}
+	return createCookie(cookieName, jwt.Build(), secondsInWeek, isNotSecure, isHTTPOnly, http.SameSiteStrictMode)
+}
+
 func generateAntiCSRFTokenCookie() (*http.Cookie, error) {
-	return createCookie("anti-csrf-token", "token", secondsInHour, isNotSecure, isNotHTTPOnly, http.SameSiteStrictMode)
+	randomBytes := make([]byte, 32)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	token := base64.URLEncoding.EncodeToString(randomBytes)
+	return createCookie("anti-csrf-token", token, secondsInHour, isNotSecure, isNotHTTPOnly, http.SameSiteStrictMode)
 }
 
 // LoginHandler handles users attempting to login via Steam.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: Check if JWT exist in request
+	// Verify if JWT header + payload matches with signature
+	// Check if JWT access token timeout > current time, if it is, expire
+	// Look up PKCE Oauth
+
 	returnURL := ""
 	if len(r.URL.Query()["referer"]) > 0 {
 		returnURL = r.URL.Query()["referer"][0]
@@ -81,7 +103,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		cookie, err := createCookie("gameRecorderAccountId", strconv.Itoa(accountID), secondsInWeek, isNotSecure, isHTTPOnly, http.SameSiteStrictMode)
+		cookie, err := generateJwtToken("gameRecorderAccountId", strconv.Itoa(accountID))
 		if err != nil {
 			log.Fatalf("main.go: failed to create cookie. %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
