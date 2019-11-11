@@ -6,40 +6,40 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"hash"
+	"log"
 	"strings"
 )
 
 const (
-	// HS256 encryption
+	// HS256 encryption used to encrypt JWT tokens
 	HS256  = "HS256"
 	secret = "test"
 )
 
-// Header rgd
+// Header is our JWT header, which specifies what algorithm to use
 type Header struct {
-	alg string
+	Typ string `json:"typ"`
+	Alg string `json:"alg"`
 }
 
 func (h *Header) build() string {
-	val := `{"typ": "JWT"` +
-		`"alg": "` + h.alg + `"}`
+	val := `{"typ": "` + h.Typ + `", "alg": "` + h.Alg + `"}`
 
 	return base64.StdEncoding.EncodeToString([]byte(val))
 }
 
-// NewHeader gfgtg
+// NewHeader generates a new header
 func NewHeader(alg string) *Header {
-	header := &Header{alg: alg}
+	header := &Header{Typ: "JWT", Alg: alg}
 	return header
 }
 
-// Payload rgsrg
+// Payload is our JWT payload, which contains the actual values
 type Payload struct {
-	iss string
-	exp string
-	sub string
-	aud string
+	Iss string `json:"iss"`
+	Exp string `json:"exp"`
+	Sub string `json:"sub"`
+	Aud string `json:"aud"`
 }
 
 func (p *Payload) build() string {
@@ -47,13 +47,13 @@ func (p *Payload) build() string {
 	return base64.StdEncoding.EncodeToString([]byte(val))
 }
 
-// NewPayload rgesr
+// NewPayload generates a new payload
 func NewPayload(iss string, exp string, sub string, aud string) string {
-	payload := &Payload{iss: iss, exp: exp, sub: sub, aud: aud}
+	payload := &Payload{Iss: iss, Exp: exp, Sub: sub, Aud: aud}
 	return payload.build()
 }
 
-// JWT generates jwt
+// JWT is what we used to verify our users
 type JWT struct {
 	header    Header
 	payload   Payload
@@ -61,50 +61,61 @@ type JWT struct {
 	secret    string
 }
 
-// NewJWT creates new JWT
-func NewJWT(header Header, payload Payload, signature string) *JWT {
+// NewJWT generates a new JWT
+func NewJWT(header Header, payload Payload) *JWT {
+	signature := generateSignature(header, payload)
 	return &JWT{header: header, payload: payload, signature: signature, secret: secret}
 }
 
-func GetJwt(jwtVal string) *JWT {
+// GetJWT gets a json string and returns back a JWT struct
+func GetJWT(jwtVal string) *JWT {
 	jwt := strings.Split(jwtVal, ".")
+
 	header := Header{}
-	json.Unmarshal([]bytes(jwt[0]), &header)
+	headerVal, _ := base64.StdEncoding.DecodeString(jwt[0])
+	json.Unmarshal(headerVal, &header)
 
 	payload := Payload{}
-	json.Unmarshal([]bytes(jwt[1]), &payload)
+	payloadVal, _ := base64.StdEncoding.DecodeString(jwt[1])
+	json.Unmarshal(payloadVal, &payload)
 
-	signature := ""
-	json.Unmarshal([]bytes(jwt[2]), &signature)
-	return NewJWT(header, payload, signature)
+	signature := jwt[2]
+
+	return &JWT{header: header, payload: payload, signature: signature, secret: secret}
 }
 
-func (j *JWT) generateSignature() string {
+func generateSignature(h Header, p Payload) string {
+	header := h.build()
+	payload := p.build()
+
 	result := header + "." + payload
 
-	var h hash.Hash
-	if j.header.alg == HS256 {
-		h = hmac.New(sha256.New, []byte(secret))
-	}
-	h.Write([]byte(result))
+	signature := ""
+	if h.Alg == HS256 {
+		hash := hmac.New(sha256.New, []byte(secret))
+		_, err := hash.Write([]byte(result))
+		if err != nil {
+			log.Fatalf("main.go: failed to write to hash. %s", err.Error())
+		}
 
-	signature := hex.EncodeToString(h.Sum(nil))
+		signature = hex.EncodeToString(hash.Sum(nil))
+	}
 
 	return signature
 }
 
-// Build the payload
+// Build returns the JWT in string format
 func (j *JWT) Build() string {
 	header := j.header.build()
 	payload := j.payload.build()
-	signature := j.generateSignature()
+	signature := j.signature
 
 	return header + "." + payload + "." + signature
 }
 
-// Verify if JWT is valid
+// Verify if JWT is valid via signatures
 func (j *JWT) Verify() bool {
-	signature := j.generateSignature()
+	signature := generateSignature(j.header, j.payload)
 
 	return signature == j.signature
 }

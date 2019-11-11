@@ -1,14 +1,11 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/solovev/steam_go"
 )
@@ -20,7 +17,6 @@ const (
 	isNotSecure   = false
 	isHTTPOnly    = true
 	isNotHTTPOnly = false
-	jwtTokenName  = "gameRecordersToken"
 )
 
 func convertBase64ToBase32(number int) int {
@@ -36,56 +32,22 @@ func getAccountID(steamID string) (int, error) {
 	return convertBase64ToBase32(id), nil
 }
 
-func createCookie(name string, value string, maxAge int, secure bool, isHTTPOnly bool, isStrict http.SameSite) (*http.Cookie, error) {
-	cookie := http.Cookie{
-		Name:     name,
-		Value:    value,
-		MaxAge:   maxAge,
-		Path:     "/",
-		Secure:   secure,
-		HttpOnly: isHTTPOnly,
-		SameSite: http.SameSiteStrictMode,
-	}
-
-	return &cookie, nil
-}
-
-// TODO: put parameters as a struct
-func generateJwtToken(cookieName string, value string) (*http.Cookie, error) {
-	header := Header{alg: HS256}
-	payload := Payload{}
-
-	jwt := Jwt{header: header, payload: payload}
-	return createCookie(cookieName, jwt.Build(), secondsInWeek, isNotSecure, isHTTPOnly, http.SameSiteStrictMode)
-}
-
-func generateAntiCSRFTokenCookie() (*http.Cookie, error) {
-	randomBytes := make([]byte, 32)
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	token := base64.URLEncoding.EncodeToString(randomBytes)
-	return createCookie("anti-csrf-token", token, secondsInHour, isNotSecure, isNotHTTPOnly, http.SameSiteStrictMode)
-}
-
 // LoginHandler handles users attempting to login via Steam.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	jwtTokenCookie, err := r.Cookie(jwtTokenName)
+	jwtTokenCookie, err := r.Cookie(JWTTokenKey)
 	if err == nil {
-		jwt := GetJwt(jwtTokenCookie)
-		if jwt.Verify() && jwt.payload.exp > time.Now() {
+		jwt := GetJWT(jwtTokenCookie.Value)
+		if jwt.Verify() {
+			//&& jwt.payload.exp > time.Now().String()
+			// TODO: verify via CSRF token
+			// TODO: PKCE OAuth
 			// get new token
 		} else {
-			log.Fatalf("main.go: failed to get jwt token cookie. %s", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			// log.Fatalf("main.go: failed to get jwt token cookie. %s", err.Error())
+			// http.Error(w, err.Error(), http.StatusInternalServerError)
+			fmt.Println("Failed to verify")
 		}
 	}
-	// TODO: Check if JWT exist in request -
-	// Verify if JWT header + payload matches with signature
-	// Check if JWT access token timeout > current time, if it is, expire
-	// Look up PKCE Oauth
 
 	returnURL := ""
 	if len(r.URL.Query()["referer"]) > 0 {
@@ -116,13 +78,13 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		cookie, err := generateJwtToken(jwtTokenName, strconv.Itoa(accountID))
+		cookie, err := GenerateJWTTokenCookie(JWTTokenKey, strconv.Itoa(accountID))
 		if err != nil {
 			log.Fatalf("main.go: failed to create cookie. %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		antiCSRFTokenCookie, err := generateAntiCSRFTokenCookie()
+		antiCSRFTokenCookie, err := GenerateAntiCSRFTokenCookie(AntiCSRFTokenKey)
 		if err != nil {
 			log.Fatalf("main.go: failed to create anti CSRF cookie. %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
