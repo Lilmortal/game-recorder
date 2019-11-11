@@ -19,6 +19,7 @@ const (
 	isNotSecure   = false
 	isHTTPOnly    = true
 	isNotHTTPOnly = false
+	jwtTokenName  = "gameRecordersToken"
 )
 
 func convertBase64ToBase32(number int) int {
@@ -48,6 +49,7 @@ func createCookie(name string, value string, maxAge int, secure bool, isHTTPOnly
 	return &cookie, nil
 }
 
+// TODO: put parameters as a struct
 func generateJwtToken(cookieName string, value string) (*http.Cookie, error) {
 	header := Header{alg: HS256}
 	payload := Payload{}
@@ -69,7 +71,12 @@ func generateAntiCSRFTokenCookie() (*http.Cookie, error) {
 
 // LoginHandler handles users attempting to login via Steam.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: Check if JWT exist in request
+	jwtTokenCookie, err := r.Cookie(jwtTokenName)
+	if err == nil {
+		header := NewHeader()
+		jwtToken := NewJWT
+	}
+	// TODO: Check if JWT exist in request -
 	// Verify if JWT header + payload matches with signature
 	// Check if JWT access token timeout > current time, if it is, expire
 	// Look up PKCE Oauth
@@ -103,7 +110,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		cookie, err := generateJwtToken("gameRecorderAccountId", strconv.Itoa(accountID))
+		cookie, err := generateJwtToken(jwtTokenName, strconv.Itoa(accountID))
 		if err != nil {
 			log.Fatalf("main.go: failed to create cookie. %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
