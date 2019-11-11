@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/solovev/steam_go"
 )
@@ -73,8 +74,13 @@ func generateAntiCSRFTokenCookie() (*http.Cookie, error) {
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	jwtTokenCookie, err := r.Cookie(jwtTokenName)
 	if err == nil {
-		header := NewHeader()
-		jwtToken := NewJWT
+		jwt := GetJwt(jwtTokenCookie)
+		if jwt.Verify() && jwt.payload.exp > time.Now() {
+			// get new token
+		} else {
+			log.Fatalf("main.go: failed to get jwt token cookie. %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
 	// TODO: Check if JWT exist in request -
 	// Verify if JWT header + payload matches with signature

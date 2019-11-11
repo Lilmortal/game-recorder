@@ -5,7 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"hash"
+	"strings"
 )
 
 const (
@@ -64,10 +66,20 @@ func NewJWT(header Header, payload Payload, signature string) *JWT {
 	return &JWT{header: header, payload: payload, signature: signature, secret: secret}
 }
 
-func (j *JWT) generateSignature() string {
-	header := j.header.build()
-	payload := j.payload.build()
+func GetJwt(jwtVal string) *JWT {
+	jwt := strings.Split(jwtVal, ".")
+	header := Header{}
+	json.Unmarshal([]bytes(jwt[0]), &header)
 
+	payload := Payload{}
+	json.Unmarshal([]bytes(jwt[1]), &payload)
+
+	signature := ""
+	json.Unmarshal([]bytes(jwt[2]), &signature)
+	return NewJWT(header, payload, signature)
+}
+
+func (j *JWT) generateSignature() string {
 	result := header + "." + payload
 
 	var h hash.Hash
