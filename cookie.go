@@ -30,7 +30,7 @@ func createCookie(name string, value string, maxAge int, secure bool, isHTTPOnly
 // GenerateJWTTokenCookie generates a cookie with JWT as the value
 func GenerateJWTTokenCookie(cookieName string, value string) (*http.Cookie, error) {
 	header := Header{Alg: HS256}
-	payload := Payload{}
+	payload := Payload{Sub: value}
 
 	jwt := NewJWT(header, payload)
 	return createCookie(cookieName, jwt.Build(), secondsInWeek, isNotSecure, isHTTPOnly, http.SameSiteStrictMode)

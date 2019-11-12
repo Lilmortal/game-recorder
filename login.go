@@ -17,7 +17,7 @@ const (
 	isNotSecure      = false
 	isHTTPOnly       = true
 	isNotHTTPOnly    = false
-	xCSRFTokenHeader = "x-csrf-token"
+	xCSRFTokenHeader = "X-CSRF-TOKEN"
 )
 
 func convertBase64ToBase32(number int) int {
@@ -39,23 +39,6 @@ func isCookieTampered(antiCSRFToken string, antiCSRFTokenHeader string) bool {
 
 // LoginHandler handles users attempting to login via Steam.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	antiCSRFTokenCookie, antiCSRFErr := r.Cookie(AntiCSRFTokenKey)
-	antiCSRFTokenHeader := r.Header.Get(xCSRFTokenHeader)
-
-	jwtTokenCookie, err := r.Cookie(JWTTokenKey)
-	if err == nil && antiCSRFErr == nil {
-		jwt := GetJWT(jwtTokenCookie.Value)
-		if jwt.Verify() && isCookieTampered(antiCSRFTokenCookie.Value, antiCSRFTokenHeader) {
-			//&& jwt.payload.exp > time.Now().String()
-			// TODO: PKCE OAuth
-			// get new token
-		} else {
-			// log.Fatalf("main.go: failed to get jwt token cookie. %s", err.Error())
-			// http.Error(w, err.Error(), http.StatusInternalServerError)
-			fmt.Println("Failed to verify")
-		}
-	}
-
 	returnURL := ""
 	if len(r.URL.Query()["referer"]) > 0 {
 		returnURL = r.URL.Query()["referer"][0]

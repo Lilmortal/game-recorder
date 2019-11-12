@@ -6,13 +6,14 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 )
 
 const (
 	// HS256 encryption used to encrypt JWT tokens
-	HS256  = "HS256"
+	HS256 = "HS256"
 	// TODO: Generate this randomly and get it from env variables
 	secret = "test"
 )
@@ -44,7 +45,7 @@ type Payload struct {
 }
 
 func (p *Payload) build() string {
-	val := ""
+	val := `{"sub": "` + p.Sub + `"}`
 	return base64.StdEncoding.EncodeToString([]byte(val))
 }
 
@@ -68,6 +69,12 @@ func NewJWT(header Header, payload Payload) *JWT {
 	return &JWT{header: header, payload: payload, signature: signature, secret: secret}
 }
 
+// Signature appends signature to an existing JWT
+func (j *JWT) Signature(signature string) *JWT {
+	j.signature = signature
+	return j
+}
+
 // GetJWT gets a json string and returns back a JWT struct
 func GetJWT(jwtVal string) *JWT {
 	jwt := strings.Split(jwtVal, ".")
@@ -82,7 +89,8 @@ func GetJWT(jwtVal string) *JWT {
 
 	signature := jwt[2]
 
-	return &JWT{header: header, payload: payload, signature: signature, secret: secret}
+	newJwt := NewJWT(header, payload)
+	return newJwt.Signature(signature)
 }
 
 func generateSignature(h Header, p Payload) string {
@@ -118,5 +126,6 @@ func (j *JWT) Build() string {
 func (j *JWT) Verify() bool {
 	signature := generateSignature(j.header, j.payload)
 
+	fmt.Println(signature, j.signature)
 	return signature == j.signature
 }
