@@ -11,12 +11,13 @@ import (
 )
 
 const (
-	secondsInHour = 3600
-	secondsInWeek = 604800
-	isSecure      = true
-	isNotSecure   = false
-	isHTTPOnly    = true
-	isNotHTTPOnly = false
+	secondsInHour    = 3600
+	secondsInWeek    = 604800
+	isSecure         = true
+	isNotSecure      = false
+	isHTTPOnly       = true
+	isNotHTTPOnly    = false
+	xCSRFTokenHeader = "x-csrf-token"
 )
 
 func convertBase64ToBase32(number int) int {
@@ -32,14 +33,20 @@ func getAccountID(steamID string) (int, error) {
 	return convertBase64ToBase32(id), nil
 }
 
+func isCookieTampered(antiCSRFToken string, antiCSRFTokenHeader string) bool {
+	return antiCSRFToken == antiCSRFTokenHeader
+}
+
 // LoginHandler handles users attempting to login via Steam.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	antiCSRFTokenCookie, antiCSRFErr := r.Cookie(AntiCSRFTokenKey)
+	antiCSRFTokenHeader := r.Header.Get(xCSRFTokenHeader)
+
 	jwtTokenCookie, err := r.Cookie(JWTTokenKey)
-	if err == nil {
+	if err == nil && antiCSRFErr == nil {
 		jwt := GetJWT(jwtTokenCookie.Value)
-		if jwt.Verify() {
+		if jwt.Verify() && isCookieTampered(antiCSRFTokenCookie.Value, antiCSRFTokenHeader) {
 			//&& jwt.payload.exp > time.Now().String()
-			// TODO: verify via CSRF token
 			// TODO: PKCE OAuth
 			// get new token
 		} else {

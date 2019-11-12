@@ -13,6 +13,7 @@ import (
 const (
 	// HS256 encryption used to encrypt JWT tokens
 	HS256  = "HS256"
+	// TODO: Generate this randomly and get it from env variables
 	secret = "test"
 )
 
