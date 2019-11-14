@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -23,8 +24,9 @@ func Adapt(handleFunc func(http.ResponseWriter, *http.Request), adapters ...Adap
 func EnableCors(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// TODO: Remember to change this
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
 		h.ServeHTTP(w, r)
@@ -35,6 +37,9 @@ func EnableCors(h http.Handler) http.Handler {
 // that it is not tampered by CSRF attacks.
 func VerifyJWT(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer h.ServeHTTP(w, r)
+
+		fmt.Println(r.Cookies())
 		antiCSRFTokenCookie, err := r.Cookie(AntiCSRFTokenKey)
 		if err != nil {
 			log.Fatal("Anti CSRF token cookie is missing.")
@@ -43,6 +48,7 @@ func VerifyJWT(h http.Handler) http.Handler {
 		antiCSRFTokenHeader := r.Header.Get(xCSRFTokenHeader)
 
 		jwtTokenCookie, err := r.Cookie(JWTTokenKey)
+
 		if err != nil {
 			log.Fatal("JWT token cookie is missing.")
 		}

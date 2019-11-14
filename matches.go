@@ -9,9 +9,11 @@ import (
 
 // MatchesHandler returns all the recent matches by a specific user.
 func MatchesHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.Cookies())
 	jwtTokenCookie, err := r.Cookie(JWTTokenKey)
 	if err != nil {
-		log.Fatal("JWT token cookie is missing.")
+		fmt.Println("JWT token cookie is missing rip.")
+		return
 	}
 
 	jwt := GetJWT(jwtTokenCookie.Value)

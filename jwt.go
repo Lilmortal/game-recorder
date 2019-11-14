@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"strings"
 )
@@ -126,6 +125,5 @@ func (j *JWT) Build() string {
 func (j *JWT) Verify() bool {
 	signature := generateSignature(j.header, j.payload)
 
-	fmt.Println(signature, j.signature)
 	return signature == j.signature
 }

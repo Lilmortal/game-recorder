@@ -17,7 +17,7 @@ const (
 	isNotSecure      = false
 	isHTTPOnly       = true
 	isNotHTTPOnly    = false
-	xCSRFTokenHeader = "X-CSRF-TOKEN"
+	xCSRFTokenHeader = "X-CSRF-Token"
 )
 
 func convertBase64ToBase32(number int) int {
@@ -34,6 +34,7 @@ func getAccountID(steamID string) (int, error) {
 }
 
 func isCookieTampered(antiCSRFToken string, antiCSRFTokenHeader string) bool {
+	fmt.Println("Anti ", antiCSRFToken, antiCSRFTokenHeader)
 	return antiCSRFToken == antiCSRFTokenHeader
 }
 

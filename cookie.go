@@ -33,7 +33,7 @@ func GenerateJWTTokenCookie(cookieName string, value string) (*http.Cookie, erro
 	payload := Payload{Sub: value}
 
 	jwt := NewJWT(header, payload)
-	return createCookie(cookieName, jwt.Build(), secondsInWeek, isNotSecure, isHTTPOnly, http.SameSiteStrictMode)
+	return createCookie(cookieName, jwt.Build(), secondsInWeek, isNotSecure, isHTTPOnly, http.SameSiteDefaultMode)
 }
 
 // GenerateAntiCSRFTokenCookie generates a cookie with anti-CSRF token as the value
@@ -45,5 +45,5 @@ func GenerateAntiCSRFTokenCookie(cookieName string) (*http.Cookie, error) {
 	}
 
 	token := base64.URLEncoding.EncodeToString(randomBytes)
-	return createCookie(cookieName, token, secondsInHour, isNotSecure, isNotHTTPOnly, http.SameSiteStrictMode)
+	return createCookie(cookieName, token, secondsInHour, isNotSecure, isNotHTTPOnly, http.SameSiteDefaultMode)
 }
