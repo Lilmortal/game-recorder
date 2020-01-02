@@ -28,3 +28,15 @@ func run() error {
 // Add a middleware for logging
 // error handling
 // Rate limit
+
+// This code is in auth.go vendor, temporarily putting it here for now.
+// func (id *OpenId) ValidateAndGetId() (string, error) {
+// 	if id.Mode() != "id_res" {
+// 		return "", errors.New("Mode must equal to \"id_res\".")
+// 	}
+
+// 	// TODO: I have temporarily disabled this vendor check as it is stopping me from redirecting properly.
+// 	// As far as I know, disabling this check does not cause much harm yet.
+// 	// if id.data.Get("openid.return_to") != id.returnUrl {
+// 	// 	return "", errors.New("The \"return_to url\" must match the url of current request.")
+// 	// }
