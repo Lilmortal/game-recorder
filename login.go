@@ -40,13 +40,14 @@ func isCookieTampered(antiCSRFToken string, antiCSRFTokenHeader string) bool {
 
 // LoginHandler handles users attempting to login via Steam.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	returnURL := ""
-	if len(r.URL.Query()["referer"]) > 0 {
-		returnURL = r.URL.Query()["referer"][0]
+	returnURL := r.Referer()
+
+	if len(r.URL.Query()["returnUrl"]) > 0 {
+		returnURL = r.URL.Query()["returnUrl"][0]
 	}
 
 	r.Host = "localhost:8080"
-	r.RequestURI = `/login?referer=` + r.Referer()
+	r.RequestURI = `/login?returnUrl=` + returnURL
 
 	opID := steam_go.NewOpenId(r)
 
@@ -58,6 +59,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		steamID, err := opID.ValidateAndGetId()
 		fmt.Println("Steam ID", steamID)
+
 		if err != nil {
 			log.Fatalf("main.go: failed to get steam ID. %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
